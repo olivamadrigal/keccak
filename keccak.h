@@ -45,6 +45,74 @@ void print_cs(uint64_t **A)
 }
 
 /*------------------------------------------------------------------------
+                        theta -- substitution
+XORs each bit of state array with the parities of two columns in the array.
+A[x][y][z] == (A[x][y] & (0x0000000000000001 << z))
+ -------------------------------------------------------------------------*/
+void theta(uint64_t **A)
+{
+    uint64_t C[5] = {0};
+    uint64_t D[5] = {0}; //because in C... we don't have data type for indivudal bits... like wires...
+    uint64_t bit;//must hold max shift out
+    int8_t x, y, z;
+    uint64_t mask1, mask63;//must use variable; literal with << is not computed correctly in this case.
+    
+    mask1 = 0x0000000000000001; mask63 = 0x8000000000000000;
+    // for all pairs (x, z) such that 0≤x<5 and 0≤z<w, let
+    for(x = 0; x < 5; x = x + 1)
+    {
+        for(z = 0; z < WORD_SIZE; z = z + 1)
+        {
+            bit = (A[x][0] & (mask1 << z)) ^ (A[x][1] & (mask1 << z)) ^ (A[x][2] & (mask1 << z)) ^ (A[x][3] & (mask1 << z)) ^ (A[x][4] & (mask1 << z));
+            C[x] = bit ? C[x] | (mask1 << z): C[x] & ~(mask1 << z);
+        }
+    }
+    //For all pairs (x, z) such that 0≤x<5 and 0≤z<w let
+    for(x = 1; x < 5; x = x + 1)
+    {
+        for(z = 1; z < WORD_SIZE; z = z + 1)
+        {
+            bit = (C[(x-1)%5] & (mask1 << z)) ^ (C[(x+1)%5] & (mask1 << ((z-1)%WORD_SIZE)));
+            D[x] = bit ? D[x] | (mask1 << z) : D[x] & ~(mask1 << z);
+        }
+    }
+    
+    //2 special cases for the modular arithmetic indexing
+    //case: x= 0, so... -1 % 5 = -1+5 = 4...
+    for(u_int8_t z = 1; z < WORD_SIZE; z = z + 1)
+    {
+        bit = (C[4] & (mask1 << z)) ^ (C[1] & (mask1 << ((z-1)%WORD_SIZE)));
+        D[0] = bit ? D[0] | (mask1 << z) : D[0] & ~(mask1 << z);
+    }
+    
+    //case z = 0
+    for(x = 1; x < 5; x = x + 1)
+    {
+        bit = (C[(x-1)%5] & mask1) ^ (C[(x+1)%5] & mask63);
+        D[x] = bit ? D[x] | mask1 : D[x] & ~(mask1);
+        //bit = (C[4] & mask1) ^ (C[1] & mask63);
+        //D[x] = bit ? D[x] | mask1 : D[x] & ~(mask1);
+    }
+    //case z=0 and x=0 ..how nice is verilog with bits...
+    bit = (C[4] & mask1) ^ (C[1] & mask63);
+    D[0] = bit ? D[0] | mask1 : D[0] & ~(mask1);
+    
+    //For all triples (x, y, z) such that 0≤x<5, 0≤y<5, and 0≤z<w, let
+    for(x = 0; x < 5; x = x + 1)
+    {
+        for(y = 0; y < 5; y = y + 1)
+        {
+            for(z = 0; z < WORD_SIZE; z = z + 1)
+            {
+                bit = (A[x][y] & (mask1 << z)) ^ (D[x] & (mask1 << z));
+                A[x][y] = bit ? A[x][y] | (mask1 << z): A[x][y] & ~(mask1 << z);
+
+            }
+        }
+    }
+}
+
+/*------------------------------------------------------------------------
                         Reverse a string of Bytes
  -------------------------------------------------------------------------*/
 void ReverseBinaryString(unsigned char *ary, int count)

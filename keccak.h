@@ -154,6 +154,35 @@ void rho(uint64_t **A)
 }
 
 /*------------------------------------------------------------------------
+                            pi -- permutation
+                rearrange the positions of the lanes
+ -------------------------------------------------------------------------*/
+void pi(uint64_t **A)
+{
+    uint8_t x,y,z;
+    uint64_t bit, mask1;
+    uint64_t AP[5][5];
+    
+    for(x = 0; x < 5; x = x + 1)
+        memcpy(AP[x], A[x], sizeof(uint64_t)*5);
+    
+    mask1 = 0x0000000000000001;
+    for(z = 0; z < 64; z = z+1)
+    {
+        for(x = 0; x< 5; x = x+1)
+        {
+            for(y = 0; y<5; y = y+1)
+            {
+                printf("%d:%d:%d <==> %d:%d:%d \n", x, y, z, (x + 3*y) % 5, x, z);
+                bit = (AP[(x+(3*y))%5][x] & (mask1 << z));
+                A[x][y] = bit ? A[x][y] | (mask1 << z) :  A[x][y] & ~(mask1 << z);
+            }
+            
+        }
+    }
+}
+
+/*------------------------------------------------------------------------
                         Reverse a string of Bytes
  -------------------------------------------------------------------------*/
 void ReverseBinaryString(unsigned char *ary, int count)

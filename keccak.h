@@ -113,6 +113,47 @@ void theta(uint64_t **A)
 }
 
 /*------------------------------------------------------------------------
+                             rho -- permutation
+The effect of is to rotate the bits of each lane by a length, called
+the offset, which depends on the fixed x and y coordinates of the lane.
+ -------------------------------------------------------------------------*/
+void rho(uint64_t **A)
+{
+    uint64_t offset[5][5];
+    uint8_t x, y;
+    offset[0][0] = 0;
+    offset[0][1] = 36;
+    offset[0][2] = 3;
+    offset[0][3] = 105;
+    offset[0][4] = 210;
+    offset[1][0] = 1;
+    offset[1][1] = 300;
+    offset[1][2] = 10;
+    offset[1][3] = 45;
+    offset[1][4] = 66;
+    offset[2][0] = 190;
+    offset[2][1] = 6;
+    offset[2][2] = 171;
+    offset[2][3] = 15;
+    offset[2][4] = 253;
+    offset[3][0] = 28;
+    offset[3][1] = 55;
+    offset[3][2] = 153;
+    offset[3][3] = 21;
+    offset[3][4] = 120;
+    offset[4][0] = 91;
+    offset[4][1] = 276;
+    offset[4][2] = 231;
+    offset[4][3] = 136;
+    offset[4][4] = 78;
+
+    for(x = 0; x < 5; x = x + 1)
+        for(y = 0; y < 5; y = y + 1)//circular rotate left by offset(x,y)
+             A[x][y] = ((A[x][y] << offset[x][y]) | (A[x][y] >> (WORD_SIZE - offset[x][y])));
+
+}
+
+/*------------------------------------------------------------------------
                         Reverse a string of Bytes
  -------------------------------------------------------------------------*/
 void ReverseBinaryString(unsigned char *ary, int count)

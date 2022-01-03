@@ -173,7 +173,6 @@ void pi(uint64_t **A)
         {
             for(y = 0; y<5; y = y+1)
             {
-                printf("%d:%d:%d <==> %d:%d:%d \n", x, y, z, (x + 3*y) % 5, x, z);
                 bit = (AP[(x+(3*y))%5][x] & (mask1 << z));
                 A[x][y] = bit ? A[x][y] | (mask1 << z) :  A[x][y] & ~(mask1 << z);
             }

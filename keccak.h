@@ -23,10 +23,20 @@ at high level (hex or binary or chars), we are working with bits... whose underl
 #define WORD_SIZE 64
 #define A_LEN 25
 
-static uint8_t a_len = 64; //word size
 uint16_t b = 1600; //block length based on default paramters b = r + c with c = 1024 and bitrate r = 576.
 uint16_t c = 1024; //capacity
 uint16_t r = 576;  //bitrate
+uint16_t l = 6;  
+
+static const uint8_t a_len = 64; //word size
+//https://keccak.team/keccak_specs_summary.html#roundConstants
+static const uint64_t RC[24] = {0x0000000000000001, 0x0000000000008082,
+0x800000000000808A, 0x8000000080008000, 0x000000000000808B, 0x0000000080000001,
+0x8000000080008081, 0x8000000000008009, 0x000000000000008A, 0x0000000000000088,
+0x0000000080008009, 0x000000008000000A, 0x000000008000808B, 0x800000000000008B,
+0x8000000000008089, 0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
+0x000000000000800A, 0x800000008000000A, 0x8000000080008081, 0x8000000000008080,
+0x0000000080000001, 0x8000000080008008};
 
 /*------------------------------------------------------------------
             print current state -- print all the lanes
@@ -338,6 +348,57 @@ uint64_t **PartitionToMatrix(uint64_t *Pi) //ith b-bit block
         }
     }
     return Ap;
+}
+
+/*------------------------------------------------------------------------
+                        xi -- substitution
+The effect of χ is to XOR each bit with a non-linear function of two other
+bits in its row.
+ -------------------------------------------------------------------------*/
+void xi(uint64_t **A)
+{
+    uint8_t x,y,z;//so used to thinking in bits and registers lol
+    uint64_t bit, mask1;
+    uint64_t AP[5][5];
+    
+    for(x = 0; x < 5; x = x + 1)//required aux matrix since will access
+        memcpy(AP[x], A[x], sizeof(uint64_t)*5);//same coordinates that get overwritten
+
+    mask1 = 0x0000000000000001;
+    for(x = 0; x < 5; x = x + 1)
+    {
+        for(y = 0; y < 5; y = y + 1)
+        {
+            for(z = 0; z < WORD_SIZE; z = z + 1)
+            {
+                bit =  (AP[x][y] & (mask1 << z)) ^ ( (~(AP[(x+1)%5][y] & (mask1 << z))) & (AP[(x+2)%5][y] & (mask1 << z)));
+                A[x][y] = bit ? A[x][y] | (mask1 << z) : A[x][y] & ~(mask1 << z);
+            }
+        }
+    }
+}
+
+/*------------------------------------------------------------------------
+                        iota -- substitution
+The effect of ι is to modify some of the bits of Lane (0, 0) in a manner that
+depends on the round index ir. The other 24 lanes are not affected by ι.
+ -------------------------------------------------------------------------*/
+void iota(uint64_t *Lane00, uint8_t ir)
+{
+    *Lane00 = *Lane00 ^ RC[ir];
+}
+
+/*------------------------------------------------------------------------
+                                Rnd
+                Rnd(A, ir) = ι(χ(π(ρ(θ(A)))), ir).
+ -------------------------------------------------------------------------*/
+ void Rnd(uint64_t **A, uint8_t ir)
+ {
+        theta(A);
+        rho(A);
+        pi(A);
+        xi(A);
+        iota(&A[0][0],ir);
 }
 
 /*------------------------------------------------------------------------

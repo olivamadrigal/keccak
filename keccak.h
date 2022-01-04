@@ -444,7 +444,7 @@ void keccak_f(char *message_file,  uint16_t r, void (*pad)(unsigned char **buf, 
     long count;
     int k, bits;
     
-    A = InitializeState();
+    //A = InitializeState();
     //PREPROCESSING OF MESSAGE
     SetParameters(r);
     buf = ProcessBinaryMessage(message_file,&count);
@@ -453,8 +453,18 @@ void keccak_f(char *message_file,  uint16_t r, void (*pad)(unsigned char **buf, 
     pad(&buf,(int)count,k,bits); //pad10 or pad101 puts(buf);
     P = PartitionMessage(buf, k); //in a loop
     //for each Pi, process as a State array
-    Pi = PartitionToMatrix(P[0]); //ith b-bit block, for now, uint test, of f() with 1 block
-    print_cs(Pi);    
+    //Pi = PartitionToMatrix(P[0]); //ith b-bit block, for now, uint test, of f() with 1 block
+    //print_cs(Pi);    
+    
+    //ABSORBTION PHASE -- Algorithm 7: KECCAK-p[b, nr](S)
+    A = InitializeState();
+    for(uint8_t i = 0; i < k; k++)//for each Pi, process as a State array
+    {
+        Pi = PartitionToMatrix(P[i]); //ith b-bit block, for now, uint test, of f() with 1 block
+        _xor(A, Pi);
+        for(uint8_t ir = 0; ir < Nr; ir++)
+            Rnd(A,ir);
+    }
     free(A);
     free(P);
     free(Pi);
